@@ -52,6 +52,15 @@ case "$RUST_TARGET" in
     export OPENSSL_ROOT_DIR="/usr/local/musl/aarch64-unknown-linux-musl"
     export OPENSSL_DIR="/usr/local/musl/aarch64-unknown-linux-musl"
     ;;
+  i686-unknown-linux-musl)
+    export CC=i686-unknown-linux-musl-gcc
+    export CXX=i686-unknown-linux-musl-g++
+    export AR=i686-unknown-linux-musl-ar
+    export CFLAGS="-I/usr/local/musl/i686-unknown-linux-musl/include"
+    export CXXFLAGS="-I/usr/local/musl/i686-unknown-linux-musl/include"
+    export OPENSSL_ROOT_DIR="/usr/local/musl/i686-unknown-linux-musl"
+    export OPENSSL_DIR="/usr/local/musl/i686-unknown-linux-musl"
+    ;;
 esac
 
 echo "Building picoquic for $RUST_TARGET..."
@@ -70,7 +79,7 @@ case "$RUST_TARGET" in
     CARGO_FEATURES="--features openssl-vendored"
     CARGO_EXTRA="-Z build-std=std,panic_abort"
     ;;
-  armv7-unknown-linux-musleabihf|aarch64-unknown-linux-musl)
+  armv7-unknown-linux-musleabihf|aarch64-unknown-linux-musl|i686-unknown-linux-musl)
     CARGO_FEATURES="--features openssl-vendored"
     ;;
 esac
