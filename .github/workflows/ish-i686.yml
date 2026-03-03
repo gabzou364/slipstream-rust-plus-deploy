@@ -1,0 +1,109 @@
+name: Build iSH i686 musl
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  build-ish-i686:
+    runs-on: ubuntu-latest
+    env:
+      TARGET: i686-unknown-linux-musl
+      ASSET_NAME: linux-ish-i686
+
+    steps:
+      - name: Checkout slipstream-rust-deploy repository
+        uses: actions/checkout@v4
+
+      - name: Checkout slipstream-rust repository
+        uses: actions/checkout@v4
+        with:
+          repository: Fox-Fig/slipstream-rust-plus
+          ref: main
+          submodules: recursive
+          path: slipstream-rust
+
+      - name: Get slipstream-rust commit hash
+        id: get_commit
+        working-directory: slipstream-rust
+        run: |
+          echo "commit=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+          echo "short_commit=$(git rev-parse --short=7 HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: i686-unknown-linux-musl
+
+      - name: Install cross
+        run: cargo install cross --git https://github.com/cross-rs/cross
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            slipstream-rust/target/
+          key: ubuntu-rust-i686-unknown-linux-musl-${{ steps.get_commit.outputs.commit }}
+          restore-keys: |
+            ubuntu-rust-i686-unknown-linux-musl-
+            ubuntu-rust-i686-
+
+      - name: Build slipstream binaries for iSH (i686 musl)
+        working-directory: slipstream-rust
+        run: |
+          cross build --release --target i686-unknown-linux-musl \
+            -p slipstream-client -p slipstream-server
+
+      - name: Prepare binaries
+        run: |
+          set -e
+          mkdir -p build_assets
+
+          TARGET_DIR="slipstream-rust/target/i686-unknown-linux-musl/release"
+          CLIENT_BIN="$TARGET_DIR/slipstream-client"
+          SERVER_BIN="$TARGET_DIR/slipstream-server"
+
+          echo "Checking for binaries..."
+          echo "Target directory: $TARGET_DIR"
+          echo "Client binary: $CLIENT_BIN"
+          echo "Server binary: $SERVER_BIN"
+
+          if [ ! -d "$TARGET_DIR" ]; then
+            echo "ERROR: Target directory does not exist: $TARGET_DIR"
+            echo "Contents of slipstream-rust/target/:"
+            ls -la "slipstream-rust/target/" || true
+            exit 1
+          fi
+
+          if [ ! -f "$CLIENT_BIN" ]; then
+            echo "ERROR: Client binary not found at $CLIENT_BIN"
+            echo "Looking for files matching 'slipstream-client*':"
+            find "$TARGET_DIR" -name "slipstream-client*" -type f || true
+            exit 1
+          fi
+
+          if [ ! -f "$SERVER_BIN" ]; then
+            echo "ERROR: Server binary not found at $SERVER_BIN"
+            echo "Looking for files matching 'slipstream-server*':"
+            find "$TARGET_DIR" -name "slipstream-server*" -type f || true
+            exit 1
+          fi
+
+          echo "Copying binaries..."
+          cp "$CLIENT_BIN" "build_assets/slipstream-client-${{ env.ASSET_NAME }}"
+          cp "$SERVER_BIN" "build_assets/slipstream-server-${{ env.ASSET_NAME }}"
+          chmod +x build_assets/*
+          echo "Binaries prepared successfully"
+          ls -lh build_assets/
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: slipstream-ish-i686
+          path: build_assets/slipstream-*
+          retention-days: 7

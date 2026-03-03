@@ -3,6 +3,8 @@ name: Build
 on:
   workflow_dispatch:
 
+permissions: {}
+
 jobs:
   build:
     strategy:
@@ -592,37 +594,3 @@ jobs:
           path: build_assets/slipstream-*
           retention-days: 7
 
-  update-version:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Update version file
-        run: |
-          # Read current version or default to 0.00
-          if [ -f .version ]; then
-            CURRENT_VERSION=$(cat .version)
-            # Check if it's a valid number
-            if ! [[ $CURRENT_VERSION =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
-              CURRENT_VERSION=0.00
-            fi
-          else
-            CURRENT_VERSION=0.00
-          fi
-          
-          # Increment by 0.01
-          NEW_VERSION=$(awk "BEGIN {print $CURRENT_VERSION + 0.01}")
-          
-          # Format to ensure 2 decimal places (optional but good for consistency)
-          NEW_VERSION=$(printf "%.2f" $NEW_VERSION)
-          
-          echo "$NEW_VERSION" > .version
-          
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add .version
-          git commit -m "Update version to $NEW_VERSION [skip ci]" || echo "No changes to commit"
-          git push
