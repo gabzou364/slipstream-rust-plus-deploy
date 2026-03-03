@@ -53,6 +53,9 @@ jobs:
             ubuntu-rust-i686-unknown-linux-musl-
             ubuntu-rust-i686-
 
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y pkg-config libssl-dev musl-tools
+
       - name: Build slipstream binaries for iSH (i686 musl)
         working-directory: slipstream-rust
         run: |
