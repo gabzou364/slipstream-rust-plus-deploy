@@ -36,11 +36,6 @@ jobs:
         with:
           targets: i686-unknown-linux-musl
           
-      - name: Install OpenSSL
-        run: sudo apt-get install -y libssl-dev
-      - name: Set OPENSSL_DIR
-        run: echo "OPENSSL_DIR=/usr" >> $GITHUB_ENV
-
       - name: Install cross
         run: cargo install cross --git https://github.com/cross-rs/cross
 
@@ -62,7 +57,8 @@ jobs:
         working-directory: slipstream-rust
         run: |
           cross build --release --target i686-unknown-linux-musl \
-            -p slipstream-client -p slipstream-server
+            -p slipstream-client -p slipstream-server \
+            --features openssl/vendored
 
       - name: Prepare binaries
         run: |
