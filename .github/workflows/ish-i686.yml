@@ -11,8 +11,6 @@ jobs:
     env:
       TARGET: i686-unknown-linux-musl
       ASSET_NAME: linux-ish-i686
-      OPENSSL_VERSION: "3.0.13"
-      OPENSSL_SHA256: "88525753f79d3bec27d2fa7c66aa0b92b3aa9498dafd93d7cfa4b3780cdae313"
 
     steps:
       - name: Checkout slipstream-rust-deploy repository
@@ -38,9 +36,6 @@ jobs:
         with:
           targets: i686-unknown-linux-musl
           
-      - name: Install cross
-        run: cargo install cross --git https://github.com/cross-rs/cross
-
       - name: Cache Rust dependencies
         uses: actions/cache@v4
         with:
@@ -58,37 +53,18 @@ jobs:
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y libssl-dev pkg-config cmake musl-tools build-essential gcc-multilib musl-dev
 
-      - name: Create Cross.toml for musl OpenSSL
+      - name: Configure Cargo linker for i686 musl
         working-directory: slipstream-rust
         run: |
-          cat > Cross.toml << 'CROSSTOML'
-          [target.i686-unknown-linux-musl]
-          pre-build = [
-            "apt-get update -qq && apt-get install -y --no-install-recommends wget make perl ca-certificates",
-            "wget -q https://www.openssl.org/source/openssl-${{ env.OPENSSL_VERSION }}.tar.gz -O /tmp/openssl.tar.gz",
-            "echo '${{ env.OPENSSL_SHA256 }}  /tmp/openssl.tar.gz' | sha256sum -c",
-            "tar -xzf /tmp/openssl.tar.gz -C /tmp",
-            "cd /tmp/openssl-${{ env.OPENSSL_VERSION }} && CC=i686-linux-musl-gcc AR=i686-linux-musl-ar RANLIB=i686-linux-musl-ranlib ./Configure linux-elf no-shared no-zlib no-tests --prefix=/usr/local/openssl-musl",
-            "make -C /tmp/openssl-${{ env.OPENSSL_VERSION }} -j$(nproc)",
-            "make -C /tmp/openssl-${{ env.OPENSSL_VERSION }} install_sw",
-          ]
-
-          [target.i686-unknown-linux-musl.env]
-          passthrough = [
-            "OPENSSL_ROOT_DIR",
-            "OPENSSL_STATIC",
-            "OPENSSL_DIR",
-          ]
-          CROSSTOML
+          mkdir -p .cargo
+          if ! grep -q '\[target\.i686-unknown-linux-musl\]' .cargo/config.toml 2>/dev/null; then
+            printf '[target.i686-unknown-linux-musl]\nlinker = "musl-gcc"\n' >> .cargo/config.toml
+          fi
 
       - name: Build slipstream binaries for iSH (i686 musl)
         working-directory: slipstream-rust
-        env:
-          OPENSSL_ROOT_DIR: /usr/local/openssl-musl
-          OPENSSL_STATIC: "1"
-          OPENSSL_DIR: /usr/local/openssl-musl
         run: |
-          cross build --release --target i686-unknown-linux-musl \
+          cargo build --release --target i686-unknown-linux-musl \
             -p slipstream-client -p slipstream-server \
             --features openssl/vendored
 
