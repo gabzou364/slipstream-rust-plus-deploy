@@ -1,0 +1,61 @@
+FROM ubuntu:24.04
+
+RUN apt-get update && apt-get install -y \
+    curl \
+    cmake \
+    pkg-config \
+    gcc \
+    g++ \
+    perl \
+    git \
+    ca-certificates \
+    unzip \
+    wget \
+    make \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV ANDROID_NDK_VERSION=r27c \
+    ANDROID_API_LEVEL=21 \
+    OPENSSL_VERSION=3.0.13
+
+RUN wget -q https://dl.google.com/android/repository/android-ndk-${ANDROID_NDK_VERSION}-linux.zip \
+    && unzip -q android-ndk-${ANDROID_NDK_VERSION}-linux.zip -d /opt/android \
+    && rm android-ndk-${ANDROID_NDK_VERSION}-linux.zip
+
+ENV ANDROID_NDK_HOME=/opt/android/android-ndk-${ANDROID_NDK_VERSION}
+ENV TOOLCHAIN_PREFIX=${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64
+
+ENV CC=${TOOLCHAIN_PREFIX}/bin/aarch64-linux-android${ANDROID_API_LEVEL}-clang \
+    CXX=${TOOLCHAIN_PREFIX}/bin/aarch64-linux-android${ANDROID_API_LEVEL}-clang++ \
+    AR=${TOOLCHAIN_PREFIX}/bin/llvm-ar \
+    RANLIB=${TOOLCHAIN_PREFIX}/bin/llvm-ranlib
+
+RUN wget -q https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz && \
+    tar -xzf openssl-${OPENSSL_VERSION}.tar.gz && \
+    cd openssl-${OPENSSL_VERSION} && \
+    ./Configure android-arm64 -D__ANDROID_API__=${ANDROID_API_LEVEL} \
+        --prefix=/usr/local/android/aarch64-linux-android \
+        no-shared no-tests && \
+    make -j$(nproc) && \
+    make install_sw && \
+    cd .. && rm -rf openssl-${OPENSSL_VERSION}*
+
+ENV OPENSSL_ROOT_DIR=/usr/local/android/aarch64-linux-android \
+    OPENSSL_DIR=/usr/local/android/aarch64-linux-android
+
+ENV CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER=${TOOLCHAIN_PREFIX}/bin/aarch64-linux-android${ANDROID_API_LEVEL}-clang
+
+ENV RUSTUP_HOME=/usr/local/rustup \
+    CARGO_HOME=/usr/local/cargo \
+    PATH=/usr/local/cargo/bin:$PATH
+
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
+    && rustup target add aarch64-linux-android
+
+ENV RUST_TARGET=aarch64-linux-android
+WORKDIR /workspace
+
+COPY build-docker.sh /workspace/build-docker.sh
+RUN chmod +x /workspace/build-docker.sh
+
+CMD ["/workspace/build-docker.sh"]
