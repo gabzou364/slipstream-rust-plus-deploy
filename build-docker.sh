@@ -61,6 +61,14 @@ case "$RUST_TARGET" in
     export OPENSSL_ROOT_DIR="/usr/local/musl/i686-unknown-linux-musl"
     export OPENSSL_DIR="/usr/local/musl/i686-unknown-linux-musl"
     ;;
+  aarch64-linux-android)
+    export CC=aarch64-linux-android21-clang
+    export CXX=aarch64-linux-android21-clang++
+    export AR=llvm-ar
+    export RANLIB=llvm-ranlib
+    export OPENSSL_ROOT_DIR="/usr/local/android/aarch64-linux-android"
+    export OPENSSL_DIR="/usr/local/android/aarch64-linux-android"
+    ;;
 esac
 
 echo "Building picoquic for $RUST_TARGET..."
