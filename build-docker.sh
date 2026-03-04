@@ -79,7 +79,7 @@ case "$RUST_TARGET" in
     CARGO_FEATURES="--features openssl-vendored"
     CARGO_EXTRA="-Z build-std=std,panic_abort"
     ;;
-  armv7-unknown-linux-musleabihf|aarch64-unknown-linux-musl|i686-unknown-linux-musl)
+  armv7-unknown-linux-musleabihf|aarch64-unknown-linux-musl|i686-unknown-linux-musl|aarch64-linux-android)
     CARGO_FEATURES="--features openssl-vendored"
     ;;
 esac
