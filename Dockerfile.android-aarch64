@@ -25,6 +25,8 @@ RUN wget -q https://dl.google.com/android/repository/android-ndk-${ANDROID_NDK_V
 ENV ANDROID_NDK_HOME=/opt/android/android-ndk-${ANDROID_NDK_VERSION}
 ENV TOOLCHAIN_PREFIX=${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64
 
+ENV PATH=${TOOLCHAIN_PREFIX}/bin:$PATH
+
 ENV CC=${TOOLCHAIN_PREFIX}/bin/aarch64-linux-android${ANDROID_API_LEVEL}-clang \
     CXX=${TOOLCHAIN_PREFIX}/bin/aarch64-linux-android${ANDROID_API_LEVEL}-clang++ \
     AR=${TOOLCHAIN_PREFIX}/bin/llvm-ar \
